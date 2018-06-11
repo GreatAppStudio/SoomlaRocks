@@ -1,10 +1,13 @@
 package greatappstudio.com.soomlarocks;
 
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
@@ -77,7 +80,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onAdLoaded(Ad ad) {
         // Ad loaded callback
         WebView webView = findWebView(ad);
-        final WebViewClient client = findWebViewClient(ad);
         webView.setWebViewClient(new WebViewClient() {
             public void onPageFinished(WebView view, String url) {
                 Random rand = new Random();
@@ -86,10 +88,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 view.loadUrl(
                         "javascript:(function() { " +
                                 "document.getElementsByClassName(\"icon\")[0].src = \"https://picsum.photos/417/?random\";"+
-                                "document.getElementsByClassName(\"fbOffsiteAdLink fbAdLinkInline buttonClickableArea\")[0].href = \""+randomUrl+"\";"+
+                                "document.getElementsByClassName(\"fbOffsiteAdLink fbAdLinkInline buttonClickableArea\")[0].href = \"soomla:"+randomUrl+"\";"+
                                 "})()");
 
-                view.setWebViewClient(client);
+            }
+
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                String url = request.getUrl().toString();
+                if (url.contains("soomla:")) {
+                    url = url.replace("soomla:","");
+                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setData(Uri.parse(url));
+                    startActivity(intent);
+
+                    return true;
+                }
+                return super.shouldOverrideUrlLoading(view, request);
             }
         });
     }
@@ -122,29 +137,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     e.printStackTrace();
                 }
             }
-        }
-        return null;
-    }
-
-    private WebViewClient findWebViewClient(Object v) {
-
-        if (v instanceof WebViewClient) {
-            return (WebViewClient) v;
-        }
-        Class aClass = v.getClass();
-
-        Field[] aFields = aClass.getDeclaredFields();
-        for(Field f : aFields)
-        {
-            if (f.getType().isAssignableFrom(WebViewClient.class)) {
-                f.setAccessible(true);
-                try {
-                    return findWebViewClient((View)f.get(v));
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                }
-            }
-            // Found an annotation, use a.toString() to print it out
         }
         return null;
     }
